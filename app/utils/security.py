@@ -4,18 +4,33 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from app.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Configuración más simple de bcrypt
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verificar contraseña"""
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
+    """
+    Hashear contraseña
+    bcrypt tiene límite de 72 bytes, truncamos si es necesario
+    """
+    # Convertir a bytes y truncar si excede 72
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password = password[:72]
+
     return pwd_context.hash(password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Crear token JWT"""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -28,6 +43,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 def decode_token(token: str) -> Optional[dict]:
+    """Decodificar token JWT"""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload

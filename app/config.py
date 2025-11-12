@@ -49,7 +49,3 @@ class Settings(BaseSettings):
 
 # Crear instancia de settings
 settings = Settings()
-
-# Debug: Imprimir para verificar
-print(f"✅ .env cargado desde: {ENV_FILE}")
-print(f"✅ DATABASE_URL: {settings.DATABASE_URL[:30]}...")
