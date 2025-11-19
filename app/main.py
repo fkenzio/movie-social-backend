@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.api.v1 import auth
+from app.api.v1 import auth, movies
+
 
 # Crear tablas
 Base.metadata.create_all(bind=engine)
@@ -24,6 +25,7 @@ app.add_middleware(
 
 # Routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(movies.router, prefix="/api/v1/movies", tags=["movies"])
 
 @app.get("/")
 def read_root():
