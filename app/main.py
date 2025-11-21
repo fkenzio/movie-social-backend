@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.api.v1 import auth, movies, ratings
+from app.api.v1 import auth, movies, ratings, list
 
 
 # Crear tablas
@@ -24,6 +24,7 @@ app.add_middleware(
 )
 
 # Routers
+app.include_router(list.router, prefix="/api/v1/lists", tags=["lists"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(movies.router, prefix="/api/v1/movies", tags=["movies"])
 app.include_router(ratings.router, prefix="/api/v1/ratings", tags=["ratings"])
