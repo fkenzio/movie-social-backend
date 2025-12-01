@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.api.v1 import auth, movies, ratings, list, rankings, reviews
+from app.api.v1 import auth, movies, ratings, list, rankings, reviews, users
 
 
 # Crear tablas
@@ -30,6 +30,7 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(movies.router, prefix="/api/v1/movies", tags=["movies"])
 app.include_router(ratings.router, prefix="/api/v1/ratings", tags=["ratings"])
 app.include_router(reviews.router, prefix="/api/v1/reviews", tags=["reviews"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
 @app.get("/")
 def read_root():
