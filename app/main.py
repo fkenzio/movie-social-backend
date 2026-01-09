@@ -37,7 +37,7 @@ app.include_router(interactions.router, prefix="/api/v1/interactions", tags=["in
 @app.get("/")
 def read_root():
     return {
-        "message": "Cineminha API",
+        "message": "Cineminha almeja API",
         "status": "running",
         "version": "1.0.0"
     }
