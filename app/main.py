@@ -17,10 +17,7 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:4200",
-        "https://movie-social-frontend.vercel.app",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],  # Permitir todos los métodos
     allow_headers=["*"],  # Permitir todos los headers
