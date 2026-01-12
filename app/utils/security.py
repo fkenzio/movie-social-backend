@@ -4,7 +4,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from app.config import settings
 
-# Configuración más simple de bcrypt
+# Configuración de bcrypt
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
@@ -18,13 +18,15 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """
-    Hashear contraseña
-    bcrypt tiene límite de 72 bytes, truncamos si es necesario
+    Hashear contraseña con manejo correcto del límite de bcrypt (72 bytes)
     """
-    # Convertir a bytes y truncar si excede 72
+    # Convertir a bytes
     password_bytes = password.encode('utf-8')
+
+    # Si excede 72 bytes, truncar
     if len(password_bytes) > 72:
-        password = password[:72]
+        # Truncar a 72 bytes de forma segura
+        password = password_bytes[:72].decode('utf-8', errors='ignore')
 
     return pwd_context.hash(password)
 
