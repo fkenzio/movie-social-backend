@@ -50,7 +50,10 @@ class RecommendationEngine:
         # Obtener ratings del usuario actual
         current_user_ratings = self.get_user_ratings_dict(user_id)
 
+        print(f"🔍 Usuario {user_id} tiene {len(current_user_ratings)} calificaciones")
+
         if len(current_user_ratings) < 5:
+            print(f"⚠️ Muy pocas calificaciones ({len(current_user_ratings)} < 5)")
             return []
 
         # Obtener todos los demás usuarios que tienen ratings
@@ -62,6 +65,8 @@ class RecommendationEngine:
             .all()
         )
 
+        print(f"🔍 Encontrados {len(other_users)} usuarios con 5+ ratings")
+
         similarities = []
 
         for (other_user_id,) in other_users:
@@ -70,9 +75,13 @@ class RecommendationEngine:
 
             if similarity > 0.3:  # Umbral mínimo de similaridad
                 similarities.append((other_user_id, similarity))
+                print(f"  ✅ Usuario {other_user_id}: similaridad {similarity:.3f}")
 
         # Ordenar por similaridad descendente
         similarities.sort(key=lambda x: x[1], reverse=True)
+
+        print(f"🎯 {len(similarities)} usuarios similares encontrados (umbral > 0.3)")
+
         return similarities[:top_n]
 
     def get_collaborative_recommendations(
@@ -85,7 +94,10 @@ class RecommendationEngine:
         similar_users = self.find_similar_users(user_id)
 
         if not similar_users:
+            print("⚠️ No hay usuarios similares, retornando lista vacía")
             return []
+
+        print(f"🎬 Generando recomendaciones basadas en {len(similar_users)} usuarios similares")
 
         # Películas que el usuario ya vio
         user_seen_movies = set(
@@ -94,6 +106,8 @@ class RecommendationEngine:
             .all()
         )
         user_seen_movies = {m[0] for m in user_seen_movies}
+
+        print(f"🚫 Usuario ya vio {len(user_seen_movies)} películas")
 
         # Recopilar recomendaciones de usuarios similares
         movie_scores = {}
@@ -129,6 +143,8 @@ class RecommendationEngine:
                     rating.rating
                 )
 
+        print(f"🎯 {len(movie_scores)} películas candidatas encontradas")
+
         # Calcular score final y ordenar
         recommendations = []
         for movie_id, scores in movie_scores.items():
@@ -145,6 +161,9 @@ class RecommendationEngine:
 
         # Ordenar por score descendente
         recommendations.sort(key=lambda x: x['score'], reverse=True)
+
+        print(f"✅ Retornando {min(len(recommendations), limit)} recomendaciones")
+
         return recommendations[:limit]
 
 
@@ -157,6 +176,10 @@ async def get_personalized_recommendations(
     """
     Obtiene recomendaciones personalizadas usando filtrado colaborativo
     """
+    print(f"\n{'=' * 60}")
+    print(f"🎯 RECOMENDACIONES PERSONALIZADAS - Usuario {current_user.id}")
+    print(f"{'=' * 60}")
+
     # Verificar que el usuario tenga suficientes ratings
     user_ratings_count = (
         db.query(func.count(Rating.id))
@@ -164,18 +187,18 @@ async def get_personalized_recommendations(
         .scalar()
     )
 
+    print(f"📊 Usuario tiene {user_ratings_count} calificaciones")
+
     if user_ratings_count < 5:
-        raise HTTPException(
-            status_code=400,
-            detail="Necesitas calificar al menos 5 películas para obtener recomendaciones"
-        )
+        print(f"⚠️ Insuficientes calificaciones, usando trending como fallback")
+        return await get_trending_for_user(limit, db, current_user)
 
     # Generar recomendaciones
     engine = RecommendationEngine(db)
     recommendations = engine.get_collaborative_recommendations(current_user.id, limit)
 
     if not recommendations:
-        # Fallback: películas populares no vistas
+        print(f"⚠️ No se generaron recomendaciones colaborativas, usando trending")
         return await get_trending_for_user(limit, db, current_user)
 
     # Obtener detalles de TMDB (ASYNC)
@@ -196,14 +219,14 @@ async def get_personalized_recommendations(
                     'reason': f"Basado en {rec['based_on_users']} usuarios con gustos similares"
                 })
         except Exception as e:
-            print(f"Error fetching movie {rec['movie_tmdb_id']}: {e}")
+            print(f"❌ Error fetching movie {rec['movie_tmdb_id']}: {e}")
             continue
 
-    return {
-        'recommendations': results,
-        'algorithm': 'collaborative',
-        'based_on_ratings': user_ratings_count
-    }
+    print(f"✅ Retornando {len(results)} películas al frontend")
+    print(f"{'=' * 60}\n")
+
+    # ⚠️ IMPORTANTE: Retornar array directo, no objeto
+    return results
 
 
 @router.get("/trending")
@@ -215,6 +238,8 @@ async def get_trending_for_user(
     """
     Películas trending que el usuario no ha visto
     """
+    print(f"🔥 Obteniendo trending para usuario {current_user.id}")
+
     # Películas que el usuario ya vio
     user_seen_movies = set(
         m[0] for m in db.query(Rating.movie_tmdb_id)
@@ -241,6 +266,7 @@ async def get_trending_for_user(
                 'reason': 'Tendencia de la semana'
             })
 
+    print(f"✅ Retornando {len(results)} películas trending")
     return results
 
 
@@ -253,6 +279,8 @@ async def get_by_favorite_genre(
     """
     Recomendaciones basadas en películas top rated que el usuario no ha visto
     """
+    print(f"🎭 Obteniendo por género para usuario {current_user.id}")
+
     # Películas que el usuario ya vio
     user_seen_movies = set(
         m[0] for m in db.query(Rating.movie_tmdb_id)
@@ -278,6 +306,7 @@ async def get_by_favorite_genre(
                 'reason': 'Películas mejor calificadas'
             })
 
+    print(f"✅ Retornando {len(results)} películas por género")
     return results
 
 
@@ -291,6 +320,8 @@ async def get_similar_movies(
     """
     Películas similares a una película específica (content-based)
     """
+    print(f"🎬 Obteniendo similares a película {movie_id}")
+
     # Obtener detalles de la película para sacar las similares
     movie_details = await TMDBService.get_movie_details(movie_id)
 
@@ -319,4 +350,5 @@ async def get_similar_movies(
                 'reason': 'Similar en temática y estilo'
             })
 
+    print(f"✅ Retornando {len(results)} películas similares")
     return results
