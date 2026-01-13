@@ -116,17 +116,25 @@ def delete_notification(
 @router.get("/stream")
 async def notification_stream(
         request: Request,
-        token: str = Query(...),  # 🔔 Token desde query parameter
+        token: str = Query(..., description="JWT token for authentication"),  # ← Token como query param
         db: Session = Depends(get_db)
 ):
-    """Endpoint SSE para notificaciones en tiempo real"""
+    """
+    Endpoint SSE para notificaciones en tiempo real.
+
+    NOTA: EventSource no soporta headers personalizados, por eso el token
+    se envía como query parameter.
+    """
 
     # Validar token manualmente
     payload = decode_token(token)
     if not payload:
-        raise HTTPException(status_code=401, detail="Token inválido")
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
 
     email = payload.get("sub")
+    if not email:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -145,6 +153,7 @@ async def notification_stream(
                     yield f"data: {json.dumps(notification)}\n\n"
                 except asyncio.TimeoutError:
                     yield f": heartbeat\n\n"
+
         except asyncio.CancelledError:
             pass
         finally:
