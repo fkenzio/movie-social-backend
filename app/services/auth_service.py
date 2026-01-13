@@ -49,7 +49,6 @@ class AuthService:
         # Enviar email
         EmailService.send_verification_email(
             db_user.email,
-            db_user.username,
             verification_code
         )
 
