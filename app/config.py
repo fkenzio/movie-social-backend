@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     SMTP_USE_SSL: bool = False
 
+    # Variables de email
+    RESEND_API_KEY: str = "re_WZhRangJ_DH4oufuBdLoUcMPVcK926JWh"  # Tu API key de Resend
+    EMAIL_FROM: str = "onboarding@resend.dev"  # Email por defecto de Resend
+
+
     # Frontend
     FRONTEND_URL: str = "http://localhost:4200"
 

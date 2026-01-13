@@ -1,217 +1,175 @@
-import smtplib
-import random
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 from app.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Configurar Resend
+resend.api_key = settings.RESEND_API_KEY
 
 
 class EmailService:
-
     @staticmethod
-    def generate_verification_code() -> str:
-        return str(random.randint(100000, 999999))
-
-    @staticmethod
-    def send_email(to_email: str, subject: str, html_content: str) -> bool:
+    def send_verification_email(email: str, code: str) -> bool:
+        """Enviar email de verificación usando Resend"""
         try:
-            message = MIMEMultipart("alternative")
-            message["Subject"] = subject
-            message["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
-            message["To"] = to_email
+            params = {
+                "from": settings.EMAIL_FROM,
+                "to": [email],
+                "subject": "Código de verificación - Cineminha",
+                "html": f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body {{
+                            font-family: Arial, sans-serif;
+                            background-color: #f4f4f4;
+                            margin: 0;
+                            padding: 20px;
+                        }}
+                        .container {{
+                            max-width: 600px;
+                            margin: 0 auto;
+                            background-color: white;
+                            padding: 40px;
+                            border-radius: 10px;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                        }}
+                        .code {{
+                            font-size: 36px;
+                            font-weight: bold;
+                            color: #4F46E5;
+                            letter-spacing: 8px;
+                            text-align: center;
+                            padding: 20px;
+                            background-color: #f8f9fa;
+                            border-radius: 8px;
+                            margin: 20px 0;
+                        }}
+                        h2 {{
+                            color: #333;
+                        }}
+                        p {{
+                            color: #666;
+                            line-height: 1.6;
+                        }}
+                        .footer {{
+                            margin-top: 30px;
+                            padding-top: 20px;
+                            border-top: 1px solid #eee;
+                            color: #999;
+                            font-size: 12px;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h2>🎬 Verifica tu cuenta en Cineminha</h2>
+                        <p>¡Gracias por registrarte! Para completar tu registro, usa el siguiente código de verificación:</p>
+                        <div class="code">{code}</div>
+                        <p><strong>Este código expirará en 10 minutos.</strong></p>
+                        <p>Si no solicitaste este código, puedes ignorar este mensaje de forma segura.</p>
+                        <div class="footer">
+                            <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+            }
 
-            html_part = MIMEText(html_content, "html")
-            message.attach(html_part)
-
-            if settings.SMTP_USE_SSL:
-                server = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT)
-            else:
-                server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
-                if settings.SMTP_USE_TLS:
-                    server.starttls()
-
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            server.send_message(message)
-            server.quit()
-
-            print(f"✅ Email enviado a {to_email}")
+            email_response = resend.Emails.send(params)
+            logger.info(f"Verification email sent to {email}. ID: {email_response['id']}")
             return True
 
         except Exception as e:
-            print(f"❌ Error al enviar email: {str(e)}")
+            logger.error(f"Error sending email to {email}: {str(e)}")
             return False
 
     @staticmethod
-    def send_verification_email(to_email: str, username: str, code: str) -> bool:
-        """Enviar email de verificación con código"""
-        subject = "Verifica tu cuenta de Cineminha"
-
-        html_content = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                    body {{
-                        font-family: 'Arial', 'Helvetica', sans-serif;
-                        background-color: #0a0a0a;
-                        color: #ffffff;
-                        margin: 0;
-                        padding: 0;
-                        -webkit-font-smoothing: antialiased;
-                    }}
-                    .email-wrapper {{
-                        background-color: #0a0a0a;
-                        padding: 40px 20px;
-                    }}
-                    .container {{
-                        max-width: 600px;
-                        margin: 0 auto;
-                        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-                        border-radius: 16px;
-                        padding: 40px;
-                        box-shadow: 0 8px 32px rgba(229, 9, 20, 0.15);
-                        border: 1px solid rgba(229, 9, 20, 0.2);
-                    }}
-                    .header {{
-                        text-align: center;
-                        margin-bottom: 40px;
-                    }}
-                    .logo {{
-                        font-size: 64px;
-                        margin-bottom: 16px;
-                        display: block;
-                    }}
-                    h1 {{
-                        color: #e50914;
-                        margin: 0 0 16px 0;
-                        font-size: 28px;
-                        font-weight: bold;
-                    }}
-                    .subtitle {{
-                        color: #ffffff;
-                        font-size: 18px;
-                        margin: 0 0 8px 0;
-                    }}
-                    .message {{
-                        color: #e0e0e0;
-                        font-size: 16px;
-                        line-height: 1.6;
-                        margin: 24px 0;
-                    }}
-                    .message strong {{
-                        color: #ffffff;
-                        font-weight: bold;
-                    }}
-                    .code-box {{
-                        background: linear-gradient(135deg, #1f1f1f 0%, #141414 100%);
-                        border: 3px solid #e50914;
-                        border-radius: 12px;
-                        padding: 32px;
-                        text-align: center;
-                        margin: 32px 0;
-                        box-shadow: 0 4px 24px rgba(229, 9, 20, 0.3);
-                    }}
-                    .code-label {{
-                        color: #b0b0b0;
-                        font-size: 14px;
-                        text-transform: uppercase;
-                        letter-spacing: 2px;
-                        margin-bottom: 16px;
-                        display: block;
-                    }}
-                    .code {{
-                        font-size: 56px;
-                        font-weight: bold;
-                        color: #e50914;
-                        letter-spacing: 12px;
-                        font-family: 'Courier New', monospace;
-                        display: block;
-                        text-shadow: 0 0 20px rgba(229, 9, 20, 0.5);
-                    }}
-                    .warning {{
-                        background-color: rgba(229, 9, 20, 0.1);
-                        border-left: 4px solid #e50914;
-                        padding: 16px;
-                        margin: 24px 0;
-                        border-radius: 4px;
-                    }}
-                    .warning-text {{
-                        color: #ffffff;
-                        font-size: 14px;
-                        margin: 0;
-                    }}
-                    .footer {{
-                        text-align: center;
-                        color: #808080;
-                        font-size: 13px;
-                        margin-top: 40px;
-                        padding-top: 24px;
-                        border-top: 1px solid #333333;
-                    }}
-                    .footer a {{
-                        color: #e50914;
-                        text-decoration: none;
-                    }}
-                    .button {{
-                        display: inline-block;
-                        background-color: #e50914;
-                        color: #ffffff !important;
-                        text-decoration: none;
-                        padding: 14px 32px;
-                        border-radius: 6px;
-                        font-weight: bold;
-                        font-size: 16px;
-                        margin: 24px 0;
-                        box-shadow: 0 4px 16px rgba(229, 9, 20, 0.3);
-                    }}
-                </style>
-            </head>
-            <body>
-                <div class="email-wrapper">
+    def send_password_reset_email(email: str, code: str) -> bool:
+        """Enviar email de recuperación de contraseña usando Resend"""
+        try:
+            params = {
+                "from": settings.EMAIL_FROM,
+                "to": [email],
+                "subject": "Recuperación de contraseña - Cineminha",
+                "html": f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body {{
+                            font-family: Arial, sans-serif;
+                            background-color: #f4f4f4;
+                            margin: 0;
+                            padding: 20px;
+                        }}
+                        .container {{
+                            max-width: 600px;
+                            margin: 0 auto;
+                            background-color: white;
+                            padding: 40px;
+                            border-radius: 10px;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                        }}
+                        .code {{
+                            font-size: 36px;
+                            font-weight: bold;
+                            color: #DC2626;
+                            letter-spacing: 8px;
+                            text-align: center;
+                            padding: 20px;
+                            background-color: #fef2f2;
+                            border-radius: 8px;
+                            margin: 20px 0;
+                        }}
+                        h2 {{
+                            color: #333;
+                        }}
+                        p {{
+                            color: #666;
+                            line-height: 1.6;
+                        }}
+                        .warning {{
+                            background-color: #fef3c7;
+                            padding: 15px;
+                            border-radius: 5px;
+                            border-left: 4px solid #f59e0b;
+                            margin: 20px 0;
+                        }}
+                        .footer {{
+                            margin-top: 30px;
+                            padding-top: 20px;
+                            border-top: 1px solid #eee;
+                            color: #999;
+                            font-size: 12px;
+                        }}
+                    </style>
+                </head>
+                <body>
                     <div class="container">
-                        <div class="header">
-                            <span class="logo">🎬</span>
-                            <h1>Cineminha</h1>
-                            <p class="subtitle">Verifica tu cuenta</p>
-                        </div>
-
-                        <p class="message">
-                            ¡Hola <strong>{username}</strong>! 👋
-                        </p>
-
-                        <p class="message">
-                            Gracias por unirte a <strong>Cineminha</strong>, tu nueva comunidad de cinéfilos. 
-                            Para completar tu registro y empezar a disfrutar de todas las funciones, 
-                            por favor verifica tu email usando el siguiente código:
-                        </p>
-
-                        <div class="code-box">
-                            <span class="code-label">Tu código de verificación</span>
-                            <span class="code">{code}</span>
-                        </div>
-
+                        <h2>🔐 Recuperación de contraseña</h2>
+                        <p>Recibimos una solicitud para restablecer tu contraseña. Usa el siguiente código:</p>
+                        <div class="code">{code}</div>
+                        <p><strong>Este código expirará en 10 minutos.</strong></p>
                         <div class="warning">
-                            <p class="warning-text">
-                                ⏱️ Este código es válido por <strong>15 minutos</strong> y solo puede usarse una vez.
-                            </p>
+                            <p><strong>⚠️ Importante:</strong> Si no solicitaste este código, tu cuenta podría estar en riesgo. Considera cambiar tu contraseña inmediatamente.</p>
                         </div>
-
-                        <p class="message">
-                            Si no creaste esta cuenta, puedes ignorar este email de forma segura.
-                        </p>
-
                         <div class="footer">
-                            <p>© 2025 Cineminha. Todos los derechos reservados.</p>
-                            <p>
-                                ¿Problemas? Contáctanos en 
-                                <a href="mailto:support@cineminha.com">support@cineminha.com</a>
-                            </p>
+                            <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
                         </div>
                     </div>
-                </div>
-            </body>
-            </html>
-        """
+                </body>
+                </html>
+                """
+            }
 
-        return EmailService.send_email(to_email, subject, html_content)
+            email_response = resend.Emails.send(params)
+            logger.info(f"Password reset email sent to {email}. ID: {email_response['id']}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error sending password reset email to {email}: {str(e)}")
+            return False
