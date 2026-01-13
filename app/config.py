@@ -27,10 +27,10 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     SMTP_USE_SSL: bool = False
 
-    # Variables de email
-    RESEND_API_KEY: str = "re_WZhRangJ_DH4oufuBdLoUcMPVcK926JWh"  # Tu API key de Resend
-    EMAIL_FROM: str = "onboarding@resend.dev"  # Email por defecto de Resend
-
+    # Variables de email - Brevo
+    BREVO_API_KEY: str = "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"
+    EMAIL_FROM: str = "victorjoseruizsoto4@gmail.com"  # Puede ser cualquier email
+    EMAIL_FROM_NAME: str = "Cineminha"
 
     # Frontend
     FRONTEND_URL: str = "http://localhost:4200"

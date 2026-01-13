@@ -1,4 +1,5 @@
-import resend
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
 import random
 import string
 from app.config import settings
@@ -6,8 +7,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Configurar Resend
-resend.api_key = settings.RESEND_API_KEY
+# Configurar Brevo
+configuration = sib_api_v3_sdk.Configuration()
+configuration.api_key['api-key'] = settings.BREVO_API_KEY
 
 
 class EmailService:
@@ -18,18 +20,22 @@ class EmailService:
 
     @staticmethod
     def send_verification_email(email: str, code: str) -> bool:
-        """Enviar email de verificación usando Resend"""
+        """Enviar email de verificación usando Brevo"""
         try:
-            if not settings.RESEND_API_KEY:
-                logger.warning("RESEND_API_KEY not configured. Email not sent.")
+            if not settings.BREVO_API_KEY:
+                logger.warning("BREVO_API_KEY not configured. Email not sent.")
                 logger.info(f"Verification code for {email}: {code}")
                 return False
 
-            params = {
-                "from": settings.EMAIL_FROM,
-                "to": [email],
-                "subject": "Código de verificación - Cineminha",
-                "html": f"""
+            api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+                sib_api_v3_sdk.ApiClient(configuration)
+            )
+
+            send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+                to=[{"email": email}],
+                sender={"email": settings.EMAIL_FROM, "name": settings.EMAIL_FROM_NAME},
+                subject="Código de verificación - Cineminha",
+                html_content=f"""
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -89,31 +95,39 @@ class EmailService:
                 </body>
                 </html>
                 """
-            }
+            )
 
-            email_response = resend.Emails.send(params)
-            logger.info(f"Verification email sent to {email}. ID: {email_response['id']}")
+            api_response = api_instance.send_transac_email(send_smtp_email)
+            logger.info(f"Verification email sent to {email}. Message ID: {api_response.message_id}")
             return True
 
+        except ApiException as e:
+            logger.error(f"Brevo API error: {e}")
+            logger.info(f"Verification code for {email}: {code}")
+            return False
         except Exception as e:
-            logger.error(f"Error sending email to {email}: {str(e)}")
-            logger.info(f"Verification code for {email}: {code}")  # Log para desarrollo
+            logger.error(f"Error sending email: {e}")
+            logger.info(f"Verification code for {email}: {code}")
             return False
 
     @staticmethod
     def send_password_reset_email(email: str, code: str) -> bool:
-        """Enviar email de recuperación de contraseña usando Resend"""
+        """Enviar email de recuperación de contraseña usando Brevo"""
         try:
-            if not settings.RESEND_API_KEY:
-                logger.warning("RESEND_API_KEY not configured. Email not sent.")
+            if not settings.BREVO_API_KEY:
+                logger.warning("BREVO_API_KEY not configured. Email not sent.")
                 logger.info(f"Password reset code for {email}: {code}")
                 return False
 
-            params = {
-                "from": settings.EMAIL_FROM,
-                "to": [email],
-                "subject": "Recuperación de contraseña - Cineminha",
-                "html": f"""
+            api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+                sib_api_v3_sdk.ApiClient(configuration)
+            )
+
+            send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+                to=[{"email": email}],
+                sender={"email": settings.EMAIL_FROM, "name": settings.EMAIL_FROM_NAME},
+                subject="Recuperación de contraseña - Cineminha",
+                html_content=f"""
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -182,13 +196,13 @@ class EmailService:
                 </body>
                 </html>
                 """
-            }
+            )
 
-            email_response = resend.Emails.send(params)
-            logger.info(f"Password reset email sent to {email}. ID: {email_response['id']}")
+            api_response = api_instance.send_transac_email(send_smtp_email)
+            logger.info(f"Password reset email sent to {email}. Message ID: {api_response.message_id}")
             return True
 
         except Exception as e:
-            logger.error(f"Error sending password reset email to {email}: {str(e)}")
-            logger.info(f"Password reset code for {email}: {code}")  # Log para desarrollo
+            logger.error(f"Error sending password reset email: {e}")
+            logger.info(f"Password reset code for {email}: {code}")
             return False
