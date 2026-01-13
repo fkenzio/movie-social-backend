@@ -12,6 +12,7 @@ from app.schemas.interaction import (
     InteractionStats
 )
 from app.services.interaction_service import InteractionService
+from app.services.notification_helpers import notify_on_like
 
 router = APIRouter()
 
@@ -31,6 +32,15 @@ def toggle_like(
         like_data.target_type,
         like_data.target_id
     )
+
+    if result["liked"]:
+        notify_on_like(
+            db=db,
+            user_id=current_user.id,
+            target_type=like_data.target_type,
+            target_id=like_data.target_id
+        )
+
     return result
 
 

@@ -5,6 +5,7 @@ from typing import List, Dict
 from app.models.like import Like
 from app.models.comment import Comment
 from app.schemas.interaction import CommentCreate, CommentUpdate
+from app.services.notification_helpers import notify_on_comment
 
 
 class InteractionService:
@@ -85,6 +86,15 @@ class InteractionService:
         db.add(new_comment)
         db.commit()
         db.refresh(new_comment)
+
+        notify_on_comment(
+            db=db,
+            user_id=user_id,
+            target_type=comment_data.target_type,
+            target_id=comment_data.target_id,
+            comment_content=comment_data.content,
+            parent_id=comment_data.parent_id
+        )
         return new_comment
 
     @staticmethod
