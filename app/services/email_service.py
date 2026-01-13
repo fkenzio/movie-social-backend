@@ -1,4 +1,6 @@
 import resend
+import random
+import string
 from app.config import settings
 import logging
 
@@ -10,9 +12,19 @@ resend.api_key = settings.RESEND_API_KEY
 
 class EmailService:
     @staticmethod
+    def generate_verification_code() -> str:
+        """Generar código de verificación de 6 dígitos"""
+        return ''.join(random.choices(string.digits, k=6))
+
+    @staticmethod
     def send_verification_email(email: str, code: str) -> bool:
         """Enviar email de verificación usando Resend"""
         try:
+            if not settings.RESEND_API_KEY:
+                logger.warning("RESEND_API_KEY not configured. Email not sent.")
+                logger.info(f"Verification code for {email}: {code}")
+                return False
+
             params = {
                 "from": settings.EMAIL_FROM,
                 "to": [email],
@@ -85,12 +97,18 @@ class EmailService:
 
         except Exception as e:
             logger.error(f"Error sending email to {email}: {str(e)}")
+            logger.info(f"Verification code for {email}: {code}")  # Log para desarrollo
             return False
 
     @staticmethod
     def send_password_reset_email(email: str, code: str) -> bool:
         """Enviar email de recuperación de contraseña usando Resend"""
         try:
+            if not settings.RESEND_API_KEY:
+                logger.warning("RESEND_API_KEY not configured. Email not sent.")
+                logger.info(f"Password reset code for {email}: {code}")
+                return False
+
             params = {
                 "from": settings.EMAIL_FROM,
                 "to": [email],
@@ -172,4 +190,5 @@ class EmailService:
 
         except Exception as e:
             logger.error(f"Error sending password reset email to {email}: {str(e)}")
+            logger.info(f"Password reset code for {email}: {code}")  # Log para desarrollo
             return False
