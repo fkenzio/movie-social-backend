@@ -93,6 +93,19 @@ class TMDBService:
             return response.json()
 
     @staticmethod
+    async def get_similar_movies(movie_id: int) -> Dict:
+        """Obtener películas similares a una película específica"""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{TMDBService.BASE_URL}/movie/{movie_id}/similar",
+                params={
+                    "api_key": settings.TMDB_API_KEY,
+                    "language": "es-MX"
+                }
+            )
+            return response.json()
+
+    @staticmethod
     def get_image_url(path: str, size: str = "w500") -> str:
         """Construir URL de imagen"""
         if not path:
